@@ -1,6 +1,6 @@
 const fs = require('fs');
-const path = require('path');
 
+// --- Remove comments and trim lines ---
 function removeCommentsAndWhitespace(code, lang) {
     let singleLineComments = 0;
     let multiLineComments = 0;
@@ -33,6 +33,7 @@ function removeCommentsAndWhitespace(code, lang) {
     };
 }
 
+// --- Split statements by semicolon ---
 function splitSemicolonStatements(lines) {
     const result = [];
 
@@ -51,10 +52,9 @@ function splitSemicolonStatements(lines) {
     return result;
 }
 
+// --- Format code with indentation ---
 function formatCode(lines, lang) {
-    if (lang === 'python') {
-        return lines.join('\n');
-    }
+    if (lang === 'python') return lines.join('\n');
 
     let formatted = '';
     let indentLevel = 0;
@@ -69,6 +69,82 @@ function formatCode(lines, lang) {
     return formatted.trim();
 }
 
+// --- Suggest and apply simplifications ---
+function suggestSimplifications(code) {
+    const suggestions = [];
+
+    const checks = [
+        {
+            pattern: /\bif\s*\(\s*(\w+)\s*==\s*true\s*\)/g,
+            replacement: 'if ($1)',
+            desc: 'Simplify `if (x == true)` to `if (x)`'
+        },
+        {
+            pattern: /\bif\s*\(\s*(\w+)\s*==\s*false\s*\)/g,
+            replacement: 'if (!$1)',
+            desc: 'Simplify `if (x == false)` to `if (!x)`'
+        },
+        {
+            pattern: /\bwhile\s*\(\s*(\w+)\s*==\s*true\s*\)/g,
+            replacement: 'while ($1)',
+            desc: 'Simplify `while (x == true)` to `while (x)`'
+        },
+        {
+            pattern: /\bwhile\s*\(\s*(\w+)\s*==\s*false\s*\)/g,
+            replacement: 'while (!$1)',
+            desc: 'Simplify `while (x == false)` to `while (!x)`'
+        },
+    ];
+
+    checks.forEach(({ pattern, replacement, desc }) => {
+        code = code.replace(pattern, (match, p1) => {
+            suggestions.push(`${desc} at: "${match}"`);
+            return replacement.replace('$1', p1);
+        });
+    });
+
+    return {
+        simplifiedCode: code,
+        suggestions
+    };
+}
+
+// --- Detect unused variables ---
+function detectUnusedVariables(code) {
+    const variablePattern = /\b(int|float|double|char|bool)\s+(\w+)\s*(=[^;]*)?;/g;
+    const declaredVars = [];
+    let match;
+
+    while ((match = variablePattern.exec(code)) !== null) {
+        declaredVars.push(match[2]);
+    }
+
+    const unused = declaredVars.filter(v =>
+        !new RegExp(`\\b${v}\\b`, 'g').test(code.replace(new RegExp(`\\b${v}\\b\\s*=.*?;`, 'g'), ''))
+    );
+
+    return unused;
+}
+
+// --- Detect unused includes ---
+function detectUnusedIncludes(code) {
+    const includes = [...code.matchAll(/#include\s*<([^>]+)>/g)].map(m => m[1]);
+    const usedHeaders = {
+        stdio: /printf|scanf/,
+        stdlib: /malloc|free|exit/,
+        string: /strlen|strcpy|strcmp/,
+        math: /sqrt|pow|sin|cos/
+    };
+
+    return includes.filter(header => {
+        const key = header.replace('.h', '');
+        const usageRegex = usedHeaders[key];
+        return usageRegex ? !usageRegex.test(code) : true;
+    });
+}
+
+// --- Identify language by file extension ---
+
 function getFileLanguage(fileName) {
     if (fileName.endsWith('.c')) return 'c';
     if (fileName.endsWith('.cpp')) return 'cpp';
@@ -77,13 +153,14 @@ function getFileLanguage(fileName) {
     return null;
 }
 
+// --- Main process ---
 function main() {
     const inputFile = 'input.c';
     const outputFile = 'optimized_output.c';
 
     const lang = getFileLanguage(inputFile);
     if (!lang) {
-        console.log('Unsupported file format. Please use .c, .cpp, .java, or .py files.');
+        console.log('Unsupported file format. Use .c, .cpp, .java, or .py files.');
         return;
     }
 
@@ -99,20 +176,44 @@ function main() {
     const separatedStatements = splitSemicolonStatements(cleanedLines);
     const formattedCode = formatCode(separatedStatements, lang);
 
-    const optimizedLines = formattedCode.split('\n').length;
+    const {
+        simplifiedCode,
+        suggestions: simplificationSuggestions
+    } = suggestSimplifications(formattedCode);
 
-    fs.writeFileSync(outputFile, formattedCode);
+    const optimizedLines = simplifiedCode.split('\n').length;
+    const unusedVars = detectUnusedVariables(simplifiedCode);
+    const unusedIncludes = detectUnusedIncludes(simplifiedCode);
 
+    fs.writeFileSync(outputFile, simplifiedCode);
+
+    // --- Output summary ---
     console.log('\n✅ Code optimization & formatting complete!');
     console.log(`Original Lines: ${originalLines}`);
     console.log(`Optimized Lines: ${optimizedLines}`);
     console.log(`Lines Saved: ${originalLines - optimizedLines}`);
-    console.log('\nComment Removal Stats:');
-    console.log(`Single-line comments removed: ${singleLineComments}`);
-    console.log(`Multi-line comments removed: ${multiLineComments}`);
-    console.log(`\n🔄 Output also saved to: ${outputFile}`);
-    console.log('\nFormatted Code Preview:');
-    console.log(formattedCode.slice(0, 300));
+    console.log('\n🧹 Comment Removal Stats:');
+    console.log(`- Single-line comments removed: ${singleLineComments}`);
+    console.log(`- Multi-line comments removed: ${multiLineComments}`);
+
+    if (unusedVars.length > 0) {
+        console.log('\n⚠️ Unused Variables:');
+        unusedVars.forEach(v => console.log(`- ${v}`));
+    }
+
+    if (unusedIncludes.length > 0) {
+        console.log('\n⚠️ Unused Includes:');
+        unusedIncludes.forEach(h => console.log(`- #include <${h}>`));
+    }
+
+    if (simplificationSuggestions.length > 0) {
+        console.log('\n✨ Simplifications Applied:');
+        simplificationSuggestions.forEach(s => console.log(`- ${s}`));
+    }
+
+    console.log(`\n🔄 Output saved to: ${outputFile}`);
+    console.log('\n🖥️ Preview:\n');
+    console.log(simplifiedCode.slice(0, 300));
 }
 
 main();

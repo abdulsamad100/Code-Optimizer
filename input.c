@@ -1,20 +1,34 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h> // unused include
+
+// This is a single-line comment
+
 /*
- This is a multi-line comment.
- It describes what the program does.
- This program prints a greeting message
- and performs a simple addition.
+ This is a
+ multi-line comment
 */
 
 int main() {
-    // Print a welcome message
-    printf("Hello, World!\n");
+    int x = 10;
+    int y = 20;
+    int unusedVar = 50;
 
-    int a = 5;    // First number
-    int b = 10;   // Second number
+    if (x == true) {
+        printf("x is true\n");
+    }
 
-    // Add the numbers
-    int sum = a + b;
+    if (y == false) {
+        printf("y is false\n");
+    }
 
-    // Print the result
-    printf("Sum is: %d\n", sum); return 0;
+    while (x == true) {
+        printf("Still true\n");
+        break;
+    }
+
+    int result = x + y;
+    printf("Result: %d\n", result);
+
+    return 0;
 }

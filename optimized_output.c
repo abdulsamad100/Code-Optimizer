@@ -1,8 +1,21 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 int main() {
-    printf("Hello, World!\n");
-    int a = 5;
-    int b = 10;
-    int sum = a + b;
-    printf("Sum is: %d\n", sum);
+    int x = 10;
+    int y = 20;
+    int unusedVar = 50;
+    if (x) {
+        printf("x is true\n");
+    }
+    if (!y) {
+        printf("y is false\n");
+    }
+    while (x) {
+        printf("Still true\n");
+        break;
+    }
+    int result = x + y;
+    printf("Result: %d\n", result);
     return 0;
 }
