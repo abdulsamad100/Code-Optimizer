@@ -1,6 +1,6 @@
 # Code Optimizer
 
-**Code Optimizer** is a Node.js CLI tool that removes comments, trims whitespace, and formats source code for better readability. It supports C, C++, Java, and Python source files, mimicking the basic formatting you'd get by pressing `Alt + Shift + F` in VSCode.
+**Code Optimizer** is a Node.js CLI tool that removes comments, trims whitespace, and formats source code for better readability. It supports C, C++, Java, and Python source files, mimicking the basic formatting.
 
 ## 🚀 Features
 
